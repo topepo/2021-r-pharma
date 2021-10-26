@@ -1,0 +1,417 @@
+---
+title: "Survival analysis with tidymodels: The censored package"
+author: Max Kuhn (RStudio) and Hannah Frick (RStudio)
+output:
+  xaringan::moon_reader:
+    anchor_sections: FALSE
+    css: ["default", "css/theme.css", "css/fonts.css"]
+    seal: false 
+    lib_dir: libs
+    nature:
+      slideNumberFormat: |
+        <div class="progress-bar-container">
+          <div class="progress-bar" style="width: calc(%current% / %total% * 100%);">
+          </div>
+        </div>
+      highlightLanguage: ["r", "css", "yaml"]
+      highlightLines: true
+      countIncrementalSlides: false
+      ratio: "16:9"
+---
+
+
+class: title-slide, left, middle
+background-position: 85% 50%
+background-size: 30%
+background-color: #F9F8F3
+
+.pull-left-a-lot[
+
+# `r rmarkdown::metadata$title`
+
+### `r rmarkdown::metadata$author`
+
+]
+
+```{r startup, include = FALSE, message = FALSE, warning = FALSE}
+knitr::opts_chunk$set(fig.path = "images/")
+library(survival)
+library(tidymodels)
+library(baguette)
+library(censored)
+library(glue)
+
+tidymodels_prefer()
+
+thm <- theme_bw() + 
+  theme(
+    panel.background = element_rect(fill = "#F9F8F3ff", colour = NA), 
+    plot.background = element_rect(fill = "#F9F8F3ff", colour = NA),
+    legend.position = "top",
+    legend.background = element_rect(fill = "#F9F8F3ff", colour = NA),
+    legend.key = element_rect(fill = "#F9F8F3ff", colour = NA)
+  )
+theme_set(thm)
+
+
+options(digits = 3, width = 80)
+
+pkgs <- floor(nrow(available.packages(contrib.url("https://cran.r-project.org")))/1000)
+
+hexes <- function(x) {
+  x <- rev(sort(x))
+  bad_svg <- c("dplyr", "tidyr")
+  x <- ifelse(x %in% bad_svg, paste0(x, ".png"), paste0(x, ".svg"))
+  markup <- function(pkg) glue::glue('<img src="images/{pkg}" class="title-hex">')
+  res <- purrr::map_chr(x, markup)
+  paste0(res, collapse = "")
+}
+
+
+load("dogs.RData")
+
+artemis <-
+  tibble(
+    birth_date=2012, sex="female", spay_neuter="fixed", named=1, american=0,
+    australian=0, beagle=1, border=0, boxer=0, bull=0, bulldog=0, catahoula=0,
+    cattle=0, chihuahua=0, collie=0, dachshund=0, german=0, great=0, hound=1,
+    husky=0, jack=0, labrador=0, miniature=0, mix=1, pit=0, pointer=0, poodle=0,
+    rat=0, retriever=0, rottweiler=0, russell=0, schnauzer=0, shepherd=0,
+    shorthair=0, siberian=0, staffordshire=0, terrier=0, yorkshire=0,
+    color_black=0, color_blue=0, color_brindle=0, color_brown=0, color_buff=0,
+    color_chocolate=0, color_cream=0, color_gray=0, color_merle=0, color_red=0,
+    color_sable=0, color_tan=0, color_tricolor=1, color_white=0, color_yellow=0,
+    pooch = "Artemis"
+  ) %>%
+  mutate(
+    spay_neuter = factor(spay_neuter, levels = levels(dogs$spay_neuter)),
+    sex = factor(sex, levels = levels(dogs$sex))
+  )
+summer <-
+  tibble(
+    birth_date=2016, sex="female", spay_neuter="fixed", named=1, american=0,
+    australian=0, beagle=0, border=0, boxer=0, bull=0, bulldog=0, catahoula=0,
+    cattle=0, chihuahua=0, collie=0, dachshund=0, german=0, great=0, hound=0,
+    husky=0, jack=0, labrador=1, miniature=0, mix=1, pit=0, pointer=0, poodle=0,
+    rat=0, retriever=1, rottweiler=0, russell=0, schnauzer=0, shepherd=0,
+    shorthair=0, siberian=0, staffordshire=0, terrier=0, yorkshire=0,
+    color_black=0, color_blue=0, color_brindle=0, color_brown=0, color_buff=0,
+    color_chocolate=0, color_cream=0, color_gray=0, color_merle=0, color_red=0,
+    color_sable=0, color_tan=0, color_tricolor=0, color_white=0, color_yellow=1,
+    pooch = "Summer"
+  )  %>%
+  mutate(
+    spay_neuter = factor(spay_neuter, levels = levels(dogs$spay_neuter)),
+    sex = factor(sex, levels = levels(dogs$sex))
+  )
+
+our_dogs <- bind_rows(artemis, summer)
+```
+
+
+---
+layout: false
+class: inverse, middle, center
+
+
+
+# [`tidymodels.org`](https://www.tidymodels.org/)
+
+# _Tidy Modeling with R_ ([`tmwr.org`](https://www.tmwr.org/))
+
+---
+# Censored data
+
+These are where the precise measurement of a time point is not complete. 
+
+To illustrate, we'll used data from a [Sliced competition](https://www.kaggle.com/c/sliced-s01e10-playoffs-2/) on adoptions of shelter animals. 
+
+The data set is for > 24K dogs and includes predictors based on breed (34), color (15), sex, and other characteristics. 
+
+The `age` of the dogs is the outcome with an event indicator called `adopted`. 
+
+---
+# Types of censoring
+
+* _right censored_: Sadie was born on 2020-01-01 and was not yet adopted as of 2021-10-26.
+
+* _left censored_: We don't know when Sadie was born but she was alive as of 2020-05-01 and was adopted on 2021-12-01. 
+
+* _interval censoring_: We don't know when Sadie was born but she was alive as of 2020-05-01 and was not yet adopted as of 2021-10-26.
+
+There are many other aspects of these data, such as multiple event times, correalted event times, and/or competing risks. 
+
+
+---
+# The censored package
+
+This package, currently on GitHub, adds engines for the `parsnip` pacakge so that we can fit variaus types of event time models. 
+
+The goals for the package are: 
+
+* Provide a clean, consistent user interface and object types. 
+
+* Enable additional "guard rails" for these particular models (e.g. empirical validation, eliminate information leakage, etc.). 
+
+* Allow users access to additional models and techniques. 
+
+To install:
+
+```r
+require("remotes")
+remotes::install_github("tidymodels/censored")
+```
+
+---
+# Two Good Dogs for prediction
+
+.pull-left[
+
+Artemis:
+
+```{r artemis, echo = FALSE, out.width="70%", fig.align='center'}
+knitr::include_graphics("images/artemis.jpeg")
+```
+
+]
+.pull-right[
+Summer:
+
+```{r summer, echo = FALSE, out.width="70%", fig.align='center'}
+knitr::include_graphics("images/summer.jpeg")
+```
+]
+
+---
+# Two Good Dogs for prediction
+
+Shorthand; all other predictors have values of zero
+
+.pull-left[
+
+
+```{r}
+artemis <-
+  tibble(
+    birth_date = 2012,
+    sex = "female",
+    spay_neuter = "fixed",
+    named = 1,
+    beagle = 1,
+    hound = 1,
+    mix = 1,
+    color_tricolor = 1,
+    pooch = "Artemis"
+  )
+
+```
+
+]
+.pull-right[
+
+```{r}
+summer <-
+  tibble(
+    birth_date = 2016,
+    sex = "female",
+    spay_neuter = "fixed",
+    named = 1,
+    labrador = 1,
+    mix = 1,
+    retriever = 1,
+    color_yellow = 1,
+    pooch = "Summer"
+  ) 
+```
+]
+
+These two samples are in a data frame called `our_dogs`. 
+
+---
+# Fitting the basic Cox model
+
+```{r}
+library(survival)
+library(tidymodels)
+library(censored)
+tidymodels_prefer()
+
+cph_fit <-
+  proportional_hazards() %>%
+  fit(Surv(age, adopted) ~ ., data = dogs)
+cph_fit
+```
+
+---
+# Tidied
+
+```{r}
+tidy(cph_fit)
+```
+
+There are prediction methods for `type = c("linear_pred", "survival", "time")`.
+
+---
+# Survival Probabilities
+
+
+
+.code80[
+
+.pull-left-a-lot[
+
+```{r ph-prob-calc-1, eval = FALSE}
+times <- 1:3000
+predict(cph_fit, our_dogs, type = "survival", time = times) 
+```
+
+tidymodels always generates _one row of predictions_ for each row of the input data set.
+
+]
+.pull-right-a-little[
+
+```{r ph-prob-res-1, ref.label='ph-prob-calc-1', echo = FALSE}
+
+```
+]
+
+]
+
+
+---
+# Survival Probabilities
+
+.code80[
+
+.pull-left-a-lot[
+
+```{r ph-prob-calc-2, eval = FALSE}
+predict(cph_fit, our_dogs, type = "survival", time = times) %>% 
+  bind_cols(our_dogs %>% select(pooch)) %>%
+  unnest(cols = c(.pred))
+```
+
+The column names are standardized for each type of prediction.
+
+]
+.pull-right-a-little[
+
+```{r ph-prob-res-2, ref.label='ph-prob-calc-2', echo = FALSE}
+
+```
+]
+
+]
+
+
+---
+# Survival Probabilities
+
+.code80[
+
+.pull-left-a-lot[
+
+```{r ph-prob-calc-3, eval = FALSE}
+predict(cph_fit, our_dogs, type = "survival", time = times) %>% 
+  bind_cols(our_dogs %>% select(pooch)) %>%
+  unnest(.pred) %>%
+  mutate(years = .time / 365) %>% 
+  ggplot(aes(x = years, y = .pred_survival, group = pooch, 
+             col = pooch)) +
+  geom_step(lwd = 1.25) + 
+  labs(x = "Age (years)", y = "Survival")
+```
+
+The column names are standardized for each type of prediction.
+
+]
+.pull-right-a-little[
+
+```{r cph-surv-probs, echo = FALSE, ref.label='ph-prob-calc-3', out.width="100%", fig.align='center', dev = 'svg', dev.args = list(bg = "#F9F8F3ff"), fig.width=5, fig.height=5}
+
+```
+]
+
+]
+
+---
+# A regularized model with strata
+
+`glmnet` has an option for fitting Cox models but...
+
+ * matrices are required (i.e. no formulas)
+ * strata as specified as part of the _outcome_ in it's own special syntax and function (`stratifySurv()`). 
+
+We allow the standard formula interface for this model and you can use the usual  `strata()` function:  
+
+```{r glmnet}
+cph_glmnet_strata_fit <-
+  proportional_hazards(penalty = 0.1, mixture = 0.75) %>%
+  set_engine("glmnet") %>%
+  fit(Surv(age, adopted) ~ . + strata(sex), data = dogs)
+```
+
+Prediction code looks the same. 
+
+---
+# A bagged tree
+
+The nice thing about `parsnip` models is that the model syntax is very similar from model-to-model. For example, if we use a bagged tree: 
+
+.code80[
+
+.pull-left-a-lot[
+
+```{r tree-calc, eval = FALSE}
+cart_fit <-
+  bag_tree(engine = "ipred") %>%
+  set_mode("censored regression") %>%
+  set_engine("ipred", times = 50) %>%
+  fit(Surv(age, adopted) ~ ., data = dogs)
+
+predict(cart_fit, our_dogs, type = "survival", time = times) %>% 
+  bind_cols(our_dogs %>% select(pooch)) %>%
+  unnest(.pred_survival) %>%
+  mutate(years = .time / 365) %>%
+  ggplot(aes(x = years, y = .pred_survival, group = pooch, 
+             col = pooch)) +
+  geom_step(lwd = 1.25) + 
+  labs(x = "Age (years)", y = "Survival")
+```
+
+]
+.pull-right-a-little[
+
+```{r tree, ref.label='tree-calc', echo = FALSE, out.width="100%", fig.align='center', dev = 'svg', dev.args = list(bg = "#F9F8F3ff"), fig.width=5, fig.height=5}
+
+```
+]
+
+]
+
+Other models: `boost_tree()`, `decision_tree()`, `rand_forest()`, and `survival_reg()`.
+
+
+---
+# Opionionated choices
+
+* Linear predictors are always increasing with time. tidymodels assumes that you can compute performce without knowing about the model type or other data. 
+
+* Many survival ROC methods are not designed for assessing predictions. We will implement the one that is most approopriate. 
+
+* Current specifications for baseline survival groups are very limited. We'll give an more versitile tool for declaring the baseline. 
+
+
+
+---
+# What's next
+
+
+* Time-dependent covariates
+* Additional models/prediction methods
+* Performance metrics (in the `yardstick` package)
+* Model tuning (with the `tune` package)
+
+# Thanks
+
+Special thanks to Emil Hvitfeldt for creating the first version of censored. 
