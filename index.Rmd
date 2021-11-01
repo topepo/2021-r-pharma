@@ -363,15 +363,15 @@ The nice thing about `parsnip` models is that the model syntax is very similar f
 .pull-left-a-lot[
 
 ```{r tree-calc, eval = FALSE}
-cart_fit <-
-  bag_tree(engine = "ipred") %>%
+bag_fit <-
+  bag_tree() %>%
   set_mode("censored regression") %>%
-  set_engine("ipred", times = 50) %>%
+  set_engine("rpart", times = 50) %>%
   fit(Surv(age, adopted) ~ ., data = dogs)
 
-predict(cart_fit, our_dogs, type = "survival", time = times) %>% 
+predict(bag_fit, our_dogs, type = "survival", time = times) %>% 
   bind_cols(our_dogs %>% select(pooch)) %>%
-  unnest(.pred_survival) %>%
+  unnest(.pred) %>%
   mutate(years = .time / 365) %>%
   ggplot(aes(x = years, y = .pred_survival, group = pooch, 
              col = pooch)) +

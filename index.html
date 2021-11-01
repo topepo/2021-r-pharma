@@ -164,7 +164,7 @@ cph_fit
 ```
 ## parsnip model object
 ## 
-## Fit time:  1.3s 
+## Fit time:  1.2s 
 ## Call:
 ## survival::coxph(formula = Surv(age, adopted) ~ ., data = data, 
 ##     model = TRUE, x = TRUE)
@@ -389,15 +389,15 @@ The nice thing about `parsnip` models is that the model syntax is very similar f
 
 
 ```r
-cart_fit &lt;-
-  bag_tree(engine = "ipred") %&gt;%
+bag_fit &lt;-
+  bag_tree() %&gt;%
   set_mode("censored regression") %&gt;%
-  set_engine("ipred", times = 50) %&gt;%
+  set_engine("rpart", times = 50) %&gt;%
   fit(Surv(age, adopted) ~ ., data = dogs)
 
-predict(cart_fit, our_dogs, type = "survival", time = times) %&gt;% 
+predict(bag_fit, our_dogs, type = "survival", time = times) %&gt;% 
   bind_cols(our_dogs %&gt;% select(pooch)) %&gt;%
-  unnest(.pred_survival) %&gt;%
+  unnest(.pred) %&gt;%
   mutate(years = .time / 365) %&gt;%
   ggplot(aes(x = years, y = .pred_survival, group = pooch, 
              col = pooch)) +
