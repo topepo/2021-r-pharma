@@ -124,7 +124,7 @@ class: inverse, middle, center
 
 These are where the precise measurement of a time point is not complete. 
 
-To illustrate, we'll used data from a [Sliced competition](https://www.kaggle.com/c/sliced-s01e10-playoffs-2/) on adoptions of shelter animals. 
+To illustrate, we'll use data from a [Sliced competition](https://www.kaggle.com/c/sliced-s01e10-playoffs-2/) on adoptions of shelter animals. 
 
 The data set is for > 24K dogs and includes predictors based on breed (34), color (15), sex, and other characteristics. 
 
@@ -139,7 +139,7 @@ The `age` of the dogs is the outcome with an event indicator called `adopted`.
 
 * _interval censoring_: We don't know when Sadie was born but she was alive as of 2020-05-01 and was not yet adopted as of 2021-10-26.
 
-There are many other aspects of these data, such as multiple event times, correalted event times, and/or competing risks. 
+There are many other aspects of these data, such as multiple event times, correlated event times, and/or competing risks. 
 
 
 ---
@@ -340,7 +340,7 @@ The column names are standardized for each type of prediction.
 `glmnet` has an option for fitting Cox models but...
 
  * matrices are required (i.e. no formulas)
- * strata as specified as part of the _outcome_ in it's own special syntax and function (`stratifySurv()`). 
+ * strata as specified as part of the _outcome_ in its own special syntax and function (`stratifySurv()`). 
 
 We allow the standard formula interface for this model and you can use the usual  `strata()` function:  
 

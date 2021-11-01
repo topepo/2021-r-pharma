@@ -43,38 +43,38 @@ class: inverse, middle, center
 ---
 # Censored data
 
-These are where the precise measurement of a time point is not complete. 
+These are where the precise measurement of a time point is not complete.
 
-To illustrate, we'll used data from a [Sliced competition](https://www.kaggle.com/c/sliced-s01e10-playoffs-2/) on adoptions of shelter animals. 
+To illustrate, we'll use data from a [Sliced competition](https://www.kaggle.com/c/sliced-s01e10-playoffs-2/) on adoptions of shelter animals.
 
-The data set is for &gt; 24K dogs and includes predictors based on breed (34), color (15), sex, and other characteristics. 
+The data set is for &gt; 24K dogs and includes predictors based on breed (34), color (15), sex, and other characteristics.
 
-The `age` of the dogs is the outcome with an event indicator called `adopted`. 
+The `age` of the dogs is the outcome with an event indicator called `adopted`.
 
 ---
 # Types of censoring
 
 * _right censored_: Sadie was born on 2020-01-01 and was not yet adopted as of 2021-10-26.
 
-* _left censored_: We don't know when Sadie was born but she was alive as of 2020-05-01 and was adopted on 2021-12-01. 
+* _left censored_: We don't know when Sadie was born but she was alive as of 2020-05-01 and was adopted on 2021-12-01.
 
 * _interval censoring_: We don't know when Sadie was born but she was alive as of 2020-05-01 and was not yet adopted as of 2021-10-26.
 
-There are many other aspects of these data, such as multiple event times, correalted event times, and/or competing risks. 
+There are many other aspects of these data, such as multiple event times, correlated event times, and/or competing risks.
 
 
 ---
 # The censored package
 
-This package, currently on GitHub, adds engines for the `parsnip` package so that we can fit various types of event time models. 
+This package, currently on GitHub, adds engines for the `parsnip` package so that we can fit various types of event time models.
 
-The goals for the package are: 
+The goals for the package are:
 
-* Provide a clean, consistent user interface and object types. 
+* Provide a clean, consistent user interface and object types.
 
-* Enable additional "guard rails" for these particular models (e.g. empirical validation, eliminate information leakage, etc.). 
+* Enable additional "guard rails" for these particular models (e.g. empirical validation, eliminate information leakage, etc.).
 
-* Allow users access to additional models and techniques. 
+* Allow users access to additional models and techniques.
 
 To install:
 
@@ -139,11 +139,11 @@ summer &lt;-
     retriever = 1,
     color_yellow = 1,
     pooch = "Summer"
-  ) 
+  )
 ```
 ]
 
-These two samples are in a data frame called `our_dogs`. 
+These two samples are in a data frame called `our_dogs`.
 
 ---
 # Fitting the basic Cox model
@@ -163,12 +163,12 @@ cph_fit
 
 ```
 ## parsnip model object
-## 
-## Fit time:  1.2s 
+##
+## Fit time:  1.2s
 ## Call:
-## survival::coxph(formula = Surv(age, adopted) ~ ., data = data, 
+## survival::coxph(formula = Surv(age, adopted) ~ ., data = data,
 ##     model = TRUE, x = TRUE)
-## 
+##
 ##                     coef exp(coef) se(coef)     z      p
 ## birth_date         0.712     2.038    0.005 150.9 &lt;2e-16
 ## sexmale           -0.063     0.939    0.013  -4.7  2e-06
@@ -223,7 +223,7 @@ cph_fit
 ## color_tricolor     0.146     1.157    0.037   3.9  1e-04
 ## color_white        0.082     1.086    0.017   4.9  1e-06
 ## color_yellow       0.128     1.137    0.056   2.3  0.022
-## 
+##
 ## Likelihood ratio test=38739  on 53 df, p=&lt;2e-16
 ## n= 24134, number of events= 23018
 ```
@@ -240,7 +240,7 @@ tidy(cph_fit)
 ## # A tibble: 53 × 5
 ##    term              estimate std.error statistic  p.value
 ##    &lt;chr&gt;                &lt;dbl&gt;     &lt;dbl&gt;     &lt;dbl&gt;    &lt;dbl&gt;
-##  1 birth_date          0.712    0.00472   151.    0       
+##  1 birth_date          0.712    0.00472   151.    0
 ##  2 sexmale            -0.0632   0.0133     -4.74  2.09e- 6
 ##  3 spay_neuterintact  -0.286    0.0210    -13.6   4.17e-42
 ##  4 named              -0.370    0.0223    -16.6   6.92e-62
@@ -267,7 +267,7 @@ There are prediction methods for `type = c("linear_pred", "survival", "time")`.
 
 ```r
 times &lt;- 1:3000
-predict(cph_fit, our_dogs, type = "survival", time = times) 
+predict(cph_fit, our_dogs, type = "survival", time = times)
 ```
 
 tidymodels always generates _one row of predictions_ for each row of the input data set.
@@ -278,8 +278,8 @@ tidymodels always generates _one row of predictions_ for each row of the input d
 
 ```
 ## # A tibble: 2 × 1
-##   .pred               
-##   &lt;list&gt;              
+##   .pred
+##   &lt;list&gt;
 ## 1 &lt;tibble [3,000 × 2]&gt;
 ## 2 &lt;tibble [3,000 × 2]&gt;
 ```
@@ -297,7 +297,7 @@ tidymodels always generates _one row of predictions_ for each row of the input d
 
 
 ```r
-predict(cph_fit, our_dogs, type = "survival", time = times) %&gt;% 
+predict(cph_fit, our_dogs, type = "survival", time = times) %&gt;%
   bind_cols(our_dogs %&gt;% select(pooch)) %&gt;%
   unnest(cols = c(.pred))
 ```
@@ -310,8 +310,8 @@ The column names are standardized for each type of prediction.
 
 ```
 ## # A tibble: 6,000 × 3
-##    .time .pred_survival pooch  
-##    &lt;int&gt;          &lt;dbl&gt; &lt;chr&gt;  
+##    .time .pred_survival pooch
+##    &lt;int&gt;          &lt;dbl&gt; &lt;chr&gt;
 ##  1     1           1    Artemis
 ##  2     2           1.00 Artemis
 ##  3     3           1.00 Artemis
@@ -338,13 +338,13 @@ The column names are standardized for each type of prediction.
 
 
 ```r
-predict(cph_fit, our_dogs, type = "survival", time = times) %&gt;% 
+predict(cph_fit, our_dogs, type = "survival", time = times) %&gt;%
   bind_cols(our_dogs %&gt;% select(pooch)) %&gt;%
   unnest(.pred) %&gt;%
-  mutate(years = .time / 365) %&gt;% 
-  ggplot(aes(x = years, y = .pred_survival, group = pooch, 
+  mutate(years = .time / 365) %&gt;%
+  ggplot(aes(x = years, y = .pred_survival, group = pooch,
              col = pooch)) +
-  geom_step(lwd = 1.25) + 
+  geom_step(lwd = 1.25) +
   labs(x = "Age (years)", y = "Survival")
 ```
 
@@ -364,9 +364,9 @@ The column names are standardized for each type of prediction.
 `glmnet` has an option for fitting Cox models but...
 
  * matrices are required (i.e. no formulas)
- * strata as specified as part of the _outcome_ in it's own special syntax and function (`stratifySurv()`). 
+ * strata as specified as part of the _outcome_ in its own special syntax and function (`stratifySurv()`).
 
-We allow the standard formula interface for this model and you can use the usual  `strata()` function:  
+We allow the standard formula interface for this model and you can use the usual  `strata()` function:
 
 
 ```r
@@ -376,12 +376,12 @@ cph_glmnet_strata_fit &lt;-
   fit(Surv(age, adopted) ~ . + strata(sex), data = dogs)
 ```
 
-Prediction code looks the same. 
+Prediction code looks the same.
 
 ---
 # A bagged tree
 
-The nice thing about `parsnip` models is that the model syntax is very similar from model-to-model. For example, if we use a bagged tree: 
+The nice thing about `parsnip` models is that the model syntax is very similar from model-to-model. For example, if we use a bagged tree:
 
 .code80[
 
@@ -395,13 +395,13 @@ bag_fit &lt;-
   set_engine("rpart", times = 50) %&gt;%
   fit(Surv(age, adopted) ~ ., data = dogs)
 
-predict(bag_fit, our_dogs, type = "survival", time = times) %&gt;% 
+predict(bag_fit, our_dogs, type = "survival", time = times) %&gt;%
   bind_cols(our_dogs %&gt;% select(pooch)) %&gt;%
   unnest(.pred) %&gt;%
   mutate(years = .time / 365) %&gt;%
-  ggplot(aes(x = years, y = .pred_survival, group = pooch, 
+  ggplot(aes(x = years, y = .pred_survival, group = pooch,
              col = pooch)) +
-  geom_step(lwd = 1.25) + 
+  geom_step(lwd = 1.25) +
   labs(x = "Age (years)", y = "Survival")
 ```
 
@@ -419,11 +419,11 @@ Other models: `boost_tree()`, `decision_tree()`, `rand_forest()`, and `survival_
 ---
 # Opionionated choices
 
-* Linear predictors are always increasing with time. tidymodels assumes that you can compute performance without knowing about the model type or other data. 
+* Linear predictors are always increasing with time. tidymodels assumes that you can compute performance without knowing about the model type or other data.
 
-* Many survival ROC methods are not designed for assessing predictions. We will implement the one that is most appropriate. 
+* Many survival ROC methods are not designed for assessing predictions. We will implement the one that is most appropriate.
 
-* Current specifications for baseline survival groups are very limited. We'll give a more versatile tool for declaring the baseline. 
+* Current specifications for baseline survival groups are very limited. We'll give a more versatile tool for declaring the baseline.
 
 
 
@@ -438,7 +438,7 @@ Other models: `boost_tree()`, `decision_tree()`, `rand_forest()`, and `survival_
 
 # Thanks
 
-Special thanks to Emil Hvitfeldt for creating the first version of censored. 
+Special thanks to Emil Hvitfeldt for creating the first version of censored.
     </textarea>
 <style data-target="print-only">@media screen {.remark-slide-container{display:block;}.remark-slide-scaler{box-shadow:none;}}</style>
 <script src="https://remarkjs.com/downloads/remark-latest.min.js"></script>
