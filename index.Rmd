@@ -128,7 +128,7 @@ To illustrate, we'll used data from a [Sliced competition](https://www.kaggle.co
 
 The data set is for > 24K dogs and includes predictors based on breed (34), color (15), sex, and other characteristics. 
 
-The `age` of the dogs is the outcome with an event indicator called `adopted`. 
+The `age` of the dogs at adoption is the outcome with an event indicator called `adopted`. 
 
 ---
 # Types of censoring
@@ -139,7 +139,7 @@ The `age` of the dogs is the outcome with an event indicator called `adopted`.
 
 * _interval censoring_: We don't know when Sadie was born but she was alive as of 2020-05-01 and was not yet adopted as of 2021-10-26.
 
-There are many other aspects of these data, such as multiple event times, correalted event times, and/or competing risks. 
+There are many other aspects of these data, such as multiple event times, correlated event times, and/or competing risks. 
 
 
 ---
@@ -158,8 +158,8 @@ The goals for the package are:
 To install:
 
 ```r
-require("remotes")
-remotes::install_github("tidymodels/censored")
+require("devtools")
+devtools::install_github("tidymodels/censored")
 ```
 
 ---
@@ -339,8 +339,8 @@ The column names are standardized for each type of prediction.
 
 `glmnet` has an option for fitting Cox models but...
 
- * matrices are required (i.e. no formulas)
- * strata as specified as part of the _outcome_ in it's own special syntax and function (`stratifySurv()`). 
+ * Matrices are required (i.e. no formulas).
+ * Strata are specified as part of the _outcome_ in it's own special syntax and function (`stratifySurv()`). 
 
 We allow the standard formula interface for this model and you can use the usual  `strata()` function:  
 
@@ -393,7 +393,7 @@ Other models: `boost_tree()`, `decision_tree()`, `rand_forest()`, and `survival_
 
 
 ---
-# Opionionated choices
+# Opinionated choices
 
 * Linear predictors are always increasing with time. tidymodels assumes that you can compute performance without knowing about the model type or other data. 
 
