@@ -172,7 +172,7 @@ cph_fit
 ```
 ## parsnip model object
 ## 
-## Fit time:  1.2s 
+## Fit time:  1.3s 
 ## Call:
 ## survival::coxph(formula = Surv(age, adopted) ~ ., data = data, 
 ##     model = TRUE, x = TRUE)
@@ -360,8 +360,6 @@ surv_curves &lt;- function(x) {
 predict(cph_fit, our_dogs, type = "survival", time = times) %&gt;% 
   surv_curves()
 ```
-
-The column names are standardized for each type of prediction.
 
 ]
 .pull-right-a-little[
