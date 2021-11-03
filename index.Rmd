@@ -115,9 +115,17 @@ class: inverse, middle, center
 
 
 
-# [`tidymodels.org`](https://www.tidymodels.org/)
+## [`tidymodels.org`](https://www.tidymodels.org/)
 
-# _Tidy Modeling with R_ ([`tmwr.org`](https://www.tmwr.org/))
+## _Tidy Modeling with R_ ([`tmwr.org`](https://www.tmwr.org/))
+
+<br>
+
+## Slides: [`rstd.io/censored-rpharma`](https://rstd.io/censored-rpharma)
+
+## Blog: [`tidyverse.org/blog`](https://www.tidyverse.org/blog/2021/11/survival-analysis-parsnip-adjacent/)
+
+## Discussion: [`rstd.io/censored-feedback`](https://rstd.io/censored-feedback)
 
 ---
 # Censored data
@@ -133,13 +141,13 @@ The `age` of the dogs is the outcome with an event indicator called `adopted`.
 ---
 # Types of censoring
 
-* _right censored_: Sadie was born on 2020-01-01 and was not yet adopted as of 2021-10-26.
+* _right censored_: Sadie was born on 2020-01-01 and was not yet adopted as of 2021-11-03.
 
-* _left censored_: We don't know when Sadie was born but she was alive as of 2020-05-01 and was adopted on 2021-12-01. 
+* _left censored_: We don't know when Sadie was born but she was alive as of 2020-05-01 and was adopted on 2021-11-03. 
 
-* _interval censoring_: We don't know when Sadie was born but she was alive as of 2020-05-01 and was not yet adopted as of 2021-10-26.
+* _interval censoring_: We don't know when Sadie was born but she was alive as of 2020-05-01 and was not yet adopted as of 2021-11-03.
 
-There are many other aspects of these data, such as multiple event times, correalted event times, and/or competing risks. 
+There are many other aspects of these data, such as multiple event times, correlated event times, and/or competing risks. 
 
 
 ---
@@ -312,17 +320,20 @@ The column names are standardized for each type of prediction.
 .pull-left-a-lot[
 
 ```{r ph-prob-calc-3, eval = FALSE}
-predict(cph_fit, our_dogs, type = "survival", time = times) %>% 
-  bind_cols(our_dogs %>% select(pooch)) %>%
+# Let's make a plotting function
+surv_curves <- function(x) {
+  bind_cols(x, our_dogs %>% select(pooch)) %>%
   unnest(.pred) %>%
   mutate(years = .time / 365) %>% 
   ggplot(aes(x = years, y = .pred_survival, group = pooch, 
              col = pooch)) +
   geom_step(lwd = 1.25) + 
   labs(x = "Age (years)", y = "Survival")
-```
+}
 
-The column names are standardized for each type of prediction.
+predict(cph_fit, our_dogs, type = "survival", time = times) %>% 
+  surv_curves()
+```
 
 ]
 .pull-right-a-little[
@@ -370,13 +381,7 @@ bag_fit <-
   fit(Surv(age, adopted) ~ ., data = dogs)
 
 predict(bag_fit, our_dogs, type = "survival", time = times) %>% 
-  bind_cols(our_dogs %>% select(pooch)) %>%
-  unnest(.pred) %>%
-  mutate(years = .time / 365) %>%
-  ggplot(aes(x = years, y = .pred_survival, group = pooch, 
-             col = pooch)) +
-  geom_step(lwd = 1.25) + 
-  labs(x = "Age (years)", y = "Survival")
+  surv_curves()
 ```
 
 ]
